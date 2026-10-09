@@ -1,0 +1,15 @@
+# Keep Docker build context hermetic: never ship local build artifacts or
+# dev caches into the image. Without this, a locally-generated C++ build/
+# dir (with a host-absolute CMakeCache.txt) leaks into the cv-inference-cpp
+# image and breaks the in-container `cmake -B build`.
+**/build/
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/.venv/
+.venv/
+.git/
+.github/
+.vscode/

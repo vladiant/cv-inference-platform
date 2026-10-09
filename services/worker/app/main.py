@@ -30,7 +30,7 @@ BUCKET_NAME = os.getenv("IMAGE_BUCKET", "images-raw")
 
 STREAM = "images:uploaded"
 GROUP = "workers"
-CONSUMER = f"worker-{os.getpid()}"
+CONSUMER = f"worker-{os.getenv('HOSTNAME') or os.getpid()}"
 
 
 async def ensure_group(r: redis.Redis):
