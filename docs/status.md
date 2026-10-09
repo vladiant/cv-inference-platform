@@ -4,10 +4,9 @@ _Last updated: 2026-10-10_
 
 ## Current stage
 
-Just completed a **design-review → implementation → QA** cycle. **QA verdict:
-PASS.** The project is now pending **release / versioning** — the Release
-Engineer stamps the next version (the first functional release); no version or
-git tag has been assigned yet.
+Completed a **design-review → implementation → QA → release** cycle. **QA
+verdict: PASS.** The first functional release has been stamped as **`1.0.0`**
+(annotated tag `v1.0.0`); the tag is created locally and awaits a push.
 
 Full runtime smoke was verified end-to-end: upload → `pending` seed → worker →
 gRPC inference → `done`/`failed` → results-api read; idempotent upsert on the
@@ -26,6 +25,6 @@ cycle.
 ## Pointers
 
 - Changes shipped this cycle are recorded in [`../CHANGELOG.md`](../CHANGELOG.md)
-  under the `Unreleased` section.
+  under the `1.0.0` section.
 - Design rationale and the enforced / structural / intended retention split:
   [`design-decisions.md`](design-decisions.md).
