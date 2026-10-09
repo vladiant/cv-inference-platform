@@ -7,9 +7,9 @@ _Last updated: 2026-10-10_
 The first functional release has been stamped as **`1.0.0`** (annotated tag
 `v1.0.0`); the tag is released and pushed.
 
-Since `1.0.0`, two **patch-level** changes have shipped to `main` and are
-awaiting the next version stamp (the Release Engineer assigns the version when
-it is tagged). Both are recorded under the CHANGELOG **`Unreleased`** section:
+Since `1.0.0`, two **patch-level** changes shipped to `main` and are now stamped
+as **`1.0.1`** (annotated tag `v1.0.1`). Both are recorded under the CHANGELOG
+**`1.0.1`** section:
 
 1. **GitHub Actions CI workflow** (`.github/workflows/ci.yml`) plus a README CI
    status badge.
@@ -36,6 +36,6 @@ resolved by the `docker-compose` object-storage fix (QA-passed).
 
 - Changes shipped this cycle are recorded in [`../CHANGELOG.md`](../CHANGELOG.md):
   the release under the `1.0.0` section, and the two post-release patch changes
-  under the `Unreleased` section.
+  under the `1.0.1` section.
 - Design rationale and the enforced / structural / intended retention split:
   [`design-decisions.md`](design-decisions.md).
