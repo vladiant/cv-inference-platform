@@ -19,10 +19,10 @@ Most portfolio repos show a single script. This shows a *system*: services that 
                         │                          │ consume (N workers, scaled by HPA)
                         ▼                          ▼
                  ┌─────────────┐            ┌──────────────┐        ┌─────────────────────┐
-                 │  MinIO (S3) │◀───stores──│  worker      │──gRPC──▶  cv-inference-cpp   │
+                 │  MinIO (S3) │◀──fetch────│  worker      │──gRPC──▶  cv-inference-cpp   │
                  │  raw images │            │  (Python)    │        │  (C++, OpenCV)      │
                  └─────────────┘            └───────┬──────┘        └─────────────────────┘
-                                                    │ writes metadata + result
+                                                    │ updates the pending record with the result
                                                     ▼
                                              ┌──────────────┐
                                              │  PostgreSQL  │
@@ -35,12 +35,19 @@ Most portfolio repos show a single script. This shows a *system*: services that 
                                              └──────────────┘
 ```
 
+The image record has a single linear lifecycle with a distinct owner per step:
+`ingestion` **creates** a `pending` metadata row in Postgres (and stores the raw
+bytes in MinIO) before emitting the event; `worker` later **updates** that row
+with the inference result (`done`/`failed`); `results-api` only ever **reads**
+it. Writing metadata is not CV work, so ingestion seeding the row does not cross
+the "ingestion performs no CV" boundary — see `docs/design-decisions.md`.
+
 **Services**
 
 | Service | Language | Responsibility |
 |---|---|---|
-| `ingestion` | Python / FastAPI | Accepts uploads, writes raw bytes to object storage, emits an `image.uploaded` event to a Redis Stream. Never touches CV logic. |
-| `worker` | Python | Consumes events, calls the C++ inference service over gRPC, writes results + metadata to Postgres. Runs as a horizontally-scaled pool. |
+| `ingestion` | Python / FastAPI | Accepts uploads, writes raw bytes to object storage, writes an initial `pending` metadata row to Postgres, then emits an `image.uploaded` event to a Redis Stream. Performs no CV work — it never decodes an image or calls the inference service. |
+| `worker` | Python | Consumes events, fetches the raw bytes, calls the C++ inference service over gRPC, and updates the `pending` record in Postgres with the inference result (`done`/`failed`). Runs as a horizontally-scaled pool. |
 | `cv-inference-cpp` | C++ / OpenCV / gRPC | Stateless inference microservice. Kept in C++ deliberately — this is the CPU-bound hot path, and it's the one place raw throughput matters more than developer velocity. |
 | `results-api` | Python / FastAPI | Read-only query API over Postgres, with Redis-backed response caching and pagination. |
 
@@ -62,13 +69,28 @@ Dependencies point inward only: `domain` knows nothing about FastAPI, Postgres, 
 
 ## Data retention strategy
 
-Images and metadata are treated differently:
+Images and metadata are *designed* to be treated differently. Because this is
+an honest scaffold, the three retention ideas below are listed with their
+**actual implementation status**, not as if all were live:
 
-- **Raw images** (MinIO): lifecycle policy moves objects older than 7 days to a cold-storage bucket class, and deletes anything older than 90 days unless flagged `retain=true` in metadata.
-- **Metadata + inference results** (Postgres): kept indefinitely, but the `images` table is partitioned by month (`created_at`) so old partitions can   be detached and archived to cold storage/Parquet without touching hot data.
-- **Redis Stream**: consumer-group acknowledgement + a max length (`MAXLEN`)   so the stream self-trims once all consumer groups have caught up.
+- **Redis Stream — enforced now.** Consumer-group acknowledgement plus a max
+  length (`MAXLEN ~ 100_000`, approximate) applied on every publish, so the
+  stream self-trims once consumers have caught up. This is the only retention
+  rule the code actually applies.
+- **Postgres partitioning — structurally present, not operationalized.** The
+  `images` table really is `PARTITION BY RANGE (uploaded_at)` with a `DEFAULT`
+  partition, so the structure exists and old partitions *could* be detached and
+  archived. But no scheduled job pre-creates monthly partitions and nothing
+  archives them, so in practice every row currently lands in `images_default`.
+  Metadata is kept indefinitely.
+- **MinIO object lifecycle — designed, not implemented.** The intended policy
+  (tier objects to cold storage after 7 days, delete after 90 days unless
+  flagged `retain=true`) is **not** configured anywhere, and no `retain`
+  metadata field exists yet. It is documented future work, not a running
+  feature.
 
-See `docs/design-decisions.md` for the reasoning and trade-offs.
+See `docs/design-decisions.md` ("What retention is actually enforced today")
+for the reasoning and the precise enforced / structural / intended split.
 
 ## Prerequisites
 
@@ -83,6 +105,13 @@ docker compose up --build
 ```
 
 This brings up: `ingestion` (:8000), `results-api` (:8001), `cv-inference-cpp` (:50051, gRPC), 2x `worker`, `postgres`, `redis`, `minio`.
+
+The `images` schema is applied automatically on first boot: the Postgres
+service mounts `services/results-api/migrations/` into the image's
+`/docker-entrypoint-initdb.d/`, which the official `postgres` image runs once
+against an empty data directory. Because the data lives in a named volume, the
+migration is applied only on a fresh volume — use `docker compose down -v` to
+re-initialize from scratch.
 
 The Python worker generates its gRPC bindings from the shared `proto/inference.proto` file at image build time, and the C++ service compiles the same contract during its Docker build. The compose file intentionally avoids the obsolete `version:` field used by older Compose releases.
 
