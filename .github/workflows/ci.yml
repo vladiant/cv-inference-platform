@@ -1,0 +1,109 @@
+# CI for cv-inference-platform.
+#
+# Mirrors the project's own "Validation" steps (see README) so CI reflects how
+# the repo is actually checked: fast, hermetic, and infra-free. No live
+# Postgres/Redis/MinIO and no Docker image builds — just static validation and
+# the infra-free unit tests each service ships.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Python version is pinned to the project's target (3.12).
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Static validation: stack definition, source compiles, k8s manifests parse,
+  # and the gRPC contract still compiles. Nothing here needs running services.
+  # ---------------------------------------------------------------------------
+  validate:
+    name: Validate (compose / compile / k8s / proto)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+          # Key the pip cache on every service's pinned requirements.
+          cache-dependency-path: services/**/requirements.txt
+
+      # Tooling needed only for the validation steps below.
+      - name: Install validation tooling
+        run: python -m pip install --upgrade pip pyyaml grpcio-tools
+
+      # docker compose v2 is preinstalled on ubuntu-latest runners.
+      - name: Validate docker-compose stack definition
+        run: docker compose config -q
+
+      # Byte-compile the Python service sources and the benchmark script.
+      - name: Compile Python sources
+        run: >-
+          python -m compileall
+          services/ingestion/app
+          services/worker/app
+          services/results-api/app
+          scripts/benchmark.py
+
+      # Parse every manifest in k8s/ (multi-doc aware) to prove they're valid YAML.
+      - name: Validate Kubernetes manifests
+        run: |
+          python - <<'PY'
+          import glob, sys, yaml
+          failed = False
+          for path in sorted(glob.glob("k8s/*.yaml")):
+              try:
+                  list(yaml.safe_load_all(open(path)))
+                  print(f"OK   {path}")
+              except Exception as exc:  # noqa: BLE001 - surface the file + error
+                  print(f"FAIL {path}: {exc}")
+                  failed = True
+          sys.exit(1 if failed else 0)
+          PY
+
+      # Compile the gRPC contract to a temp dir to prove it's still valid.
+      - name: Compile gRPC proto
+        run: |
+          out="$(mktemp -d)"
+          python -m grpc_tools.protoc \
+            -I proto \
+            --python_out="$out" \
+            --grpc_python_out="$out" \
+            proto/inference.proto
+          ls -l "$out"
+
+  # ---------------------------------------------------------------------------
+  # Infra-free unit tests. Only ingestion and results-api ship tests; worker has
+  # none, so it is intentionally excluded (no invented tests). Matrixed so each
+  # service's results are reported independently.
+  # ---------------------------------------------------------------------------
+  test:
+    name: Test (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [ingestion, results-api]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+          cache-dependency-path: services/${{ matrix.service }}/requirements.txt
+
+      - name: Install ${{ matrix.service }} dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r services/${{ matrix.service }}/requirements.txt pytest
+
+      - name: Run ${{ matrix.service }} tests
+        run: python -m pytest services/${{ matrix.service }}/tests

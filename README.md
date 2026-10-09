@@ -1,5 +1,7 @@
 # CV Inference Platform
 
+[![CI](https://github.com/vladiant/cv-inference-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/vladiant/cv-inference-platform/actions/workflows/ci.yml)
+
 A small, honest distributed system for ingesting images, running computer-vision inference on them at scale, and serving the results through a REST API.
 
 It exists as a portfolio project mapping directly to the skills required for senior "Computer Vision Infrastructure" / "Image Processing Pipelines" roles:
