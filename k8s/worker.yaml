@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: cv-platform
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: worker}
+  template:
+    metadata:
+      labels: {app: worker}
+    spec:
+      containers:
+        - name: worker
+          image: cv-platform/worker:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - {name: REDIS_URL, value: "redis://redis:6379/0"}
+            - {name: POSTGRES_DSN, value: "postgresql://cvplatform:cvplatform@postgres:5432/cvplatform"}
+            - {name: MINIO_ENDPOINT, value: "minio:9000"}
+            - {name: MINIO_ACCESS_KEY, value: "cvplatform"}
+            - {name: MINIO_SECRET_KEY, value: "cvplatform123"}
+            - {name: INFERENCE_GRPC_ADDR, value: "cv-inference-cpp:50051"}
+          resources:
+            requests: {cpu: "250m", memory: 256Mi}
+            limits: {cpu: "1", memory: 512Mi}
+---
+# This is the manifest that demonstrates "scale the worker pool under
+# load" without a human running kubectl scale by hand.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: worker-hpa
+  namespace: cv-platform
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: worker
+  minReplicas: 2
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 30
+    scaleDown:
+      stabilizationWindowSeconds: 120

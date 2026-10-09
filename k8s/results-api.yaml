@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: results-api
+  namespace: cv-platform
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: results-api}
+  template:
+    metadata:
+      labels: {app: results-api}
+    spec:
+      containers:
+        - name: results-api
+          image: cv-platform/results-api:latest
+          imagePullPolicy: IfNotPresent
+          ports: [{containerPort: 8001}]
+          env:
+            - {name: POSTGRES_DSN, value: "postgresql://cvplatform:cvplatform@postgres:5432/cvplatform"}
+            - {name: REDIS_URL, value: "redis://redis:6379/0"}
+          resources:
+            requests: {cpu: "100m", memory: 128Mi}
+            limits: {cpu: "500m", memory: 256Mi}
+          readinessProbe:
+            httpGet: {path: /healthz, port: 8001}
+            initialDelaySeconds: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: results-api
+  namespace: cv-platform
+spec:
+  selector: {app: results-api}
+  ports: [{port: 8001, targetPort: 8001}]
+  type: ClusterIP

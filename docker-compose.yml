@@ -1,0 +1,103 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: cvplatform
+      POSTGRES_USER: cvplatform
+      POSTGRES_PASSWORD: cvplatform
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cvplatform"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: cvplatform
+      MINIO_ROOT_PASSWORD: cvplatform123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+
+  cv-inference-cpp:
+    build:
+      context: .
+      dockerfile: services/cv-inference-cpp/Dockerfile
+    ports:
+      - "50051:50051"
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1G
+
+  ingestion:
+    build: ./services/ingestion
+    ports:
+      - "8000:8000"
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: cvplatform
+      MINIO_SECRET_KEY: cvplatform123
+    depends_on:
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+
+  worker:
+    build:
+      context: .
+      dockerfile: services/worker/Dockerfile
+    deploy:
+      replicas: 2
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      POSTGRES_DSN: postgresql://cvplatform:cvplatform@postgres:5432/cvplatform
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: cvplatform
+      MINIO_SECRET_KEY: cvplatform123
+      INFERENCE_GRPC_ADDR: cv-inference-cpp:50051
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      cv-inference-cpp:
+        condition: service_started
+
+  results-api:
+    build: ./services/results-api
+    ports:
+      - "8001:8001"
+    environment:
+      POSTGRES_DSN: postgresql://cvplatform:cvplatform@postgres:5432/cvplatform
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  miniodata:
