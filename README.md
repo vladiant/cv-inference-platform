@@ -15,13 +15,13 @@ Most portfolio repos show a single script. This shows a *system*: services that 
                  ┌─────────────┐        ┌────────────────────┐
   client ──HTTP──▶  ingestion  │──push──▶  Redis Stream      │
                  │  (FastAPI)  │        │  "images:uploaded" │
-                 └─────────────┘        └────────┬───────────┘
+                 └─────────────┘        └──────────┬─────────┘
                         │                          │ consume (N workers, scaled by HPA)
                         ▼                          ▼
                  ┌─────────────┐            ┌──────────────┐        ┌─────────────────────┐
                  │  MinIO (S3) │◀───stores──│  worker      │──gRPC──▶  cv-inference-cpp   │
                  │  raw images │            │  (Python)    │        │  (C++, OpenCV)      │
-                 └─────────────┘            └──────┬───────┘        └─────────────────────┘
+                 └─────────────┘            └───────┬──────┘        └─────────────────────┘
                                                     │ writes metadata + result
                                                     ▼
                                              ┌──────────────┐
