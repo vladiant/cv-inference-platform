@@ -5,11 +5,10 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.1] - 2026-10-10
 
-Patch-level changes shipped to `main` after the `1.0.0` tag, awaiting the next
-version stamp. No app API, event contract, schema, credentials, ports, or
-bucket names changed.
+Patch-level changes shipped to `main` after the `1.0.0` tag. No app API, event
+contract, schema, credentials, ports, or bucket names changed.
 
 ### Added
 
