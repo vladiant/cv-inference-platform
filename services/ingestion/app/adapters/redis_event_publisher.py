@@ -19,3 +19,6 @@ class RedisEventPublisher:
             maxlen=self._maxlen,
             approximate=True,
         )
+
+    async def close(self) -> None:
+        await self._redis.aclose()

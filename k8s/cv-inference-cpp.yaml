@@ -20,7 +20,7 @@ spec:
             requests: {cpu: "1", memory: 512Mi}
             limits: {cpu: "2", memory: 1Gi}
           readinessProbe:
-            tcpSocket: {port: 50051}
+            grpc: {port: 50051}
             initialDelaySeconds: 5
 ---
 apiVersion: v1

@@ -19,8 +19,11 @@ async def lifespan(app: FastAPI):
     state["pool"] = pool
     state["repo"] = repo
     state["get_result"] = GetImageResult(repo, cache)
-    yield
-    await pool.close()
+    try:
+        yield
+    finally:
+        await pool.close()
+        await cache.close()
 
 
 app = FastAPI(title="results-api", lifespan=lifespan)

@@ -11,3 +11,6 @@ class RedisResultCache:
 
     async def set(self, key: str, value: str, ttl_seconds: int) -> None:
         await self._redis.set(key, value, ex=ttl_seconds)
+
+    async def close(self) -> None:
+        await self._redis.aclose()

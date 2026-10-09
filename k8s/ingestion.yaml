@@ -18,6 +18,7 @@ spec:
           ports: [{containerPort: 8000}]
           env:
             - {name: REDIS_URL, value: "redis://redis:6379/0"}
+            - {name: POSTGRES_DSN, value: "postgresql://cvplatform:cvplatform@postgres:5432/cvplatform"}
             - {name: MINIO_ENDPOINT, value: "minio:9000"}
             - {name: MINIO_ACCESS_KEY, value: "cvplatform"}
             - {name: MINIO_SECRET_KEY, value: "cvplatform123"}

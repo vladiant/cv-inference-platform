@@ -11,6 +11,7 @@
 #include <string>
 
 #include <grpcpp/grpcpp.h>
+#include <grpcpp/health_check_service_interface.h>
 #include <opencv2/opencv.hpp>
 #include <opencv2/objdetect.hpp>
 
@@ -23,8 +24,6 @@ using grpc::Status;
 using cvinference::Inference;
 using cvinference::InferRequest;
 using cvinference::InferResponse;
-using cvinference::HealthRequest;
-using cvinference::HealthResponse;
 using cvinference::Detection;
 
 namespace {
@@ -79,12 +78,6 @@ public:
         return Status::OK;
     }
 
-    Status HealthCheck(ServerContext* /*context*/, const HealthRequest* /*request*/,
-                        HealthResponse* response) override {
-        response->set_healthy(true);
-        return Status::OK;
-    }
-
 private:
     cv::CascadeClassifier cascade_;
 };
@@ -99,6 +92,11 @@ int main(int argc, char** argv) {
 
     const std::string server_address = "0.0.0.0:50051";
     InferenceServiceImpl service(cascade_path);
+
+    // Serve the standard gRPC health-checking protocol (grpc.health.v1.Health)
+    // so Kubernetes' native grpc readiness probe can confirm the service is
+    // registered and SERVING. Must be enabled before BuildAndStart().
+    grpc::EnableDefaultHealthCheckService(true);
 
     ServerBuilder builder;
     builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());

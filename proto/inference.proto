@@ -7,7 +7,6 @@ package cvinference;
 // (InferBatch) rather than overloading this one.
 service Inference {
   rpc InferImage (InferRequest) returns (InferResponse);
-  rpc HealthCheck (HealthRequest) returns (HealthResponse);
 }
 
 message InferRequest {
@@ -31,10 +30,4 @@ message Detection {
   int32 y = 4;
   int32 width = 5;
   int32 height = 6;
-}
-
-message HealthRequest {}
-
-message HealthResponse {
-  bool healthy = 1;
 }

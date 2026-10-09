@@ -18,6 +18,7 @@ import time
 from pathlib import Path
 
 import requests
+import aiohttp
 
 SAMPLE_IMAGE = Path(__file__).parent / "sample.jpg"
 
@@ -37,14 +38,14 @@ async def _one_async_request(session, url: str) -> float:
     t0 = time.monotonic()
     with open(SAMPLE_IMAGE, "rb") as f:
         data = f.read()
-    form = {"file": data}
-    async with session.post(url, data={"file": data}) as resp:
+    form = aiohttp.FormData()
+    form.add_field("file", data, filename="sample.jpg", content_type="image/jpeg")
+    async with session.post(url, data=form) as resp:
         await resp.read()
     return time.monotonic() - t0
 
 
 async def run_async(url: str, n: int, concurrency: int) -> list[float]:
-    import aiohttp
     sem = asyncio.Semaphore(concurrency)
 
     async def bounded(session):

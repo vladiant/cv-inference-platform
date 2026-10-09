@@ -12,4 +12,4 @@ RUN python -m grpc_tools.protoc -I proto --python_out=. --grpc_python_out=. prot
 
 COPY services/worker/app ./app
 
-CMD ["python", "-u", "app/main.py"]
+CMD ["python", "-u", "-m", "app.main"]
