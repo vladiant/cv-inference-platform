@@ -124,6 +124,16 @@ python3 -m compileall services/ingestion/app services/worker/app services/result
 
 These checks verify that the stack definition is valid and that the Python service source compiles cleanly before runtime startup.
 
+Each Python service also carries infra-free unit tests (no Postgres/Redis/MinIO
+required) under its own `tests/` directory — `ingestion` and `results-api`
+currently ship them. Run a service's suite with `pytest` from that service
+directory, for example:
+
+```bash
+pytest services/ingestion/tests
+pytest services/results-api/tests
+```
+
 Upload an image:
 
 ```bash
@@ -136,6 +146,11 @@ Poll for the result:
 ```bash
 curl http://localhost:8001/images/<image_id>
 ```
+
+Because `ingestion` seeds a `pending` metadata row before it emits the event, a
+freshly-uploaded image is immediately queryable: this returns a record in the
+`pending` state right away, then flips to `done` (or `failed`) once a `worker`
+has run inference on it — not a 404 followed by a sudden appearance.
 
 ## Running it on Kubernetes
 
