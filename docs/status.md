@@ -31,6 +31,11 @@ the CHANGELOG **`[Unreleased]`** section (not yet stamped/tagged):
    `.gitignore` now excludes the generated `docs/doxygen/` output. No runtime
    behavior, API, event contract, schema, credentials, ports, or bucket names
    changed — the doc comments are inert.
+4. **Docs publication CI for both hosting targets.** GitHub Actions now
+   publishes generated Doxygen HTML to GitHub Pages using
+   `configure-pages` → `upload-pages-artifact` → `deploy-pages` on main-branch
+   pushes, and GitLab CI now publishes the same output to GitLab Pages via a
+   `pages` job on the default branch.
 
 Full runtime smoke was verified end-to-end: upload → `pending` seed → worker →
 gRPC inference → `done`/`failed` → results-api read; idempotent upsert on the
@@ -44,7 +49,9 @@ MinIO image.
 - The Doxygen documentation change is staged under `[Unreleased]` and has not
   yet been stamped as a patch release / tagged. Generating the docs requires
   `doxygen` and `graphviz` (`dot`) on `PATH`; run `doxygen Doxyfile` from the
-  repo root (output: `docs/doxygen/html/`, gitignored).
+  repo root (output: `docs/doxygen/html/`, gitignored). CI republishes this
+  output to GitHub Pages on pushes to `main` and to GitLab Pages on the default
+  branch.
 
 ## Pointers
 

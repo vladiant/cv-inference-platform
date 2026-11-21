@@ -28,6 +28,10 @@ comments are inert.
   `benchmark.py` — enhancing, not replacing, the existing docstrings.
 - **README "Documentation (Doxygen)" subsection** describing how to generate
   the docs (`doxygen Doxyfile`) and where the Component Diagram appears.
+- **Automated Doxygen docs publishing pipelines.** GitHub Actions now builds
+  Doxygen docs and publishes to GitHub Pages (main-branch push only), and a
+  new GitLab CI `pages` pipeline publishes the same generated HTML to GitLab
+  Pages from the default branch.
 
 ### Changed
 

@@ -1,0 +1,20 @@
+stages:
+  - docs
+
+pages:
+  stage: docs
+  image: debian:bookworm-slim
+  before_script:
+    - apt-get update
+    - apt-get install -y --no-install-recommends doxygen graphviz ca-certificates
+  script:
+    - doxygen Doxyfile
+    - test -f docs/doxygen/html/index.html
+    - rm -rf public
+    - mkdir -p public
+    - cp -r docs/doxygen/html/. public/
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'

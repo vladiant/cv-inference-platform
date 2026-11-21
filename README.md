@@ -196,6 +196,10 @@ architecture in this README and in `docs/design-decisions.md`.
 Requires `doxygen` and `graphviz` (`dot`) on `PATH`. Doxygen creates the
 `docs/doxygen/` output directory on demand.
 
+CI publishes this generated Doxygen site automatically:
+- **GitHub Pages** via `.github/workflows/ci.yml` on pushes to `main` (modern Pages artifact flow).
+- **GitLab Pages** via `.gitlab-ci.yml` (`pages` job artifact from Doxygen HTML) on the default branch.
+
 ## Repo layout
 
 ```
