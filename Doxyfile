@@ -15,7 +15,7 @@
 # Project
 #---------------------------------------------------------------------------
 PROJECT_NAME           = "CV Inference Platform"
-PROJECT_NUMBER         = 1.0.1
+PROJECT_NUMBER         = 1.0.2
 PROJECT_BRIEF          = "Event-driven distributed computer-vision inference pipeline"
 OUTPUT_DIRECTORY       = docs/doxygen
 CREATE_SUBDIRS         = NO

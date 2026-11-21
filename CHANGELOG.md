@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+No unreleased changes yet.
+
+## [1.0.2] - 2026-11-22
+
 Documentation-only, PATCH-level change. No app API, event contract, schema,
 credentials, ports, bucket names, or runtime behavior changed — the added doc
 comments are inert.

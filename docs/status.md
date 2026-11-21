@@ -19,8 +19,8 @@ as **`1.0.1`** (annotated tag `v1.0.1`). Both are recorded under the CHANGELOG
    healthcheck, `service_healthy` gating for `ingestion`/`worker`, the missing
    `worker → minio` dependency, and `restart: unless-stopped` across services.
 
-Since `1.0.1`, one **documentation-only, PATCH-level** change is staged under
-the CHANGELOG **`[Unreleased]`** section (not yet stamped/tagged):
+Since `1.0.1`, two **documentation-only, PATCH-level** changes are recorded
+under the CHANGELOG **`1.0.2`** section:
 
 3. **Doxygen API docs + System Component Diagram.** A root `Doxyfile` plus a
    Doxygen `@mainpage` (`docs/mainpage.dox`) carrying a hand-authored Graphviz
@@ -44,21 +44,19 @@ shutdown works. The object-store fix is QA-passed: MinIO reaches healthy and the
 full upload → object-write → pending-row path works end-to-end with the real
 MinIO image.
 
+The project version is now bumped to **`1.0.2`** in `VERSION` for this patch
+set. (Tag/publish remains a separate release step.)
+
 ## Known follow-ups
 
-- The Doxygen documentation change is staged under `[Unreleased]` and has not
-  yet been stamped as a patch release / tagged. Generating the docs requires
-  `doxygen` and `graphviz` (`dot`) on `PATH`; run `doxygen Doxyfile` from the
-  repo root (output: `docs/doxygen/html/`, gitignored). CI republishes this
-  output to GitHub Pages on pushes to `main` and to GitLab Pages on the default
-  branch.
+None outstanding beyond the standard release/tag push step for `v1.0.2`.
 
 ## Pointers
 
 - Changes shipped this cycle are recorded in [`../CHANGELOG.md`](../CHANGELOG.md):
   the release under the `1.0.0` section, the two post-release patch changes
-  under the `1.0.1` section, and the Doxygen documentation change under
-  `[Unreleased]`.
+  under the `1.0.1` section, and the Doxygen/Pages documentation updates under
+  `1.0.2`.
 - Design rationale and the enforced / structural / intended retention split:
   [`design-decisions.md`](design-decisions.md).
 - Doxygen config: root [`../Doxyfile`](../Doxyfile); Component Diagram source:
