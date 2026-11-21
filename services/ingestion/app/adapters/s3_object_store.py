@@ -1,4 +1,5 @@
-"""Concrete ObjectStore adapter backed by MinIO (S3-compatible).
+"""@file
+@brief Concrete ObjectStore adapter backed by MinIO (S3-compatible).
 
 This is the only file in the service allowed to import boto3/aioboto3.
 """
@@ -14,6 +15,7 @@ class S3ObjectStore:
         self._session = aioboto3.Session()
 
     async def ensure_bucket(self) -> None:
+        """@brief Create the target bucket if a HEAD shows it does not exist."""
         async with self._session.client(
             "s3",
             endpoint_url=self._endpoint_url,
@@ -26,6 +28,7 @@ class S3ObjectStore:
                 await s3.create_bucket(Bucket=self._bucket)
 
     async def put(self, key: str, data: bytes, content_type: str) -> None:
+        """@brief Store raw bytes under ``key`` with the given content type."""
         async with self._session.client(
             "s3",
             endpoint_url=self._endpoint_url,

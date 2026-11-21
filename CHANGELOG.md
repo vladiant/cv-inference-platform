@@ -5,6 +5,35 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Documentation-only, PATCH-level change. No app API, event contract, schema,
+credentials, ports, bucket names, or runtime behavior changed — the added doc
+comments are inert.
+
+### Added
+
+- **Doxygen API documentation setup.** A root `Doxyfile` configured for the
+  Python services, the C++ inference service, the shared
+  `proto/inference.proto` contract, and `scripts/benchmark.py`
+  (`EXTRACT_ALL = YES`, `RECURSIVE = YES`, Python docstring commands enabled,
+  `HAVE_DOT = YES`). HTML renders to the gitignored `docs/doxygen/html/`.
+- **System Component Diagram.** A hand-authored Graphviz `\dot` graph embedded
+  in a Doxygen `@mainpage` (`docs/mainpage.dox`), depicting the four services
+  as components and labelling each boundary with its real contract (HTTP/REST,
+  Redis Stream event, Redis cache, gRPC, S3 object I/O, SQL). Kept faithful to
+  `README.md` and `docs/design-decisions.md`.
+- **Doxygen-format doc comments** (`@file`/`@brief`/`@param`/`@return`) across
+  the service source trees, `main.cpp`, `inference.proto`, and
+  `benchmark.py` — enhancing, not replacing, the existing docstrings.
+- **README "Documentation (Doxygen)" subsection** describing how to generate
+  the docs (`doxygen Doxyfile`) and where the Component Diagram appears.
+
+### Changed
+
+- **`.gitignore`** now excludes the generated `docs/doxygen/` output so the
+  rendered HTML and diagrams are never committed.
+
 ## [1.0.1] - 2026-10-10
 
 Patch-level changes shipped to `main` after the `1.0.0` tag. No app API, event

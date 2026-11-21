@@ -1,9 +1,16 @@
-// Stateless gRPC inference service. This is the CPU-bound hot path of the
-// system (see docs/design-decisions.md for why it's C++ rather than Python).
-//
-// The inference itself is deliberately simple (OpenCV Haar cascade face
-// detection) -- the point of this service is the service boundary and the
-// throughput characteristics, not the model.
+/**
+ * @file main.cpp
+ * @brief Stateless gRPC inference microservice (the CPU-bound hot path).
+ *
+ * This is the one service kept in C++ deliberately: it is the CPU-bound hot
+ * path of the system (see docs/design-decisions.md for why it's C++ rather
+ * than Python). It serves the @c cvinference.Inference gRPC contract plus the
+ * standard @c grpc.health.v1.Health service.
+ *
+ * The inference itself is deliberately simple (OpenCV Haar cascade face
+ * detection) -- the point of this service is the service boundary and the
+ * throughput characteristics, not the model.
+ */
 
 #include <chrono>
 #include <iostream>
@@ -28,9 +35,13 @@ using cvinference::Detection;
 
 namespace {
 
-// Loaded once at startup and shared (read-only) across requests --
-// CascadeClassifier::detectMultiScale is safe to call concurrently on a
-// const classifier from multiple threads.
+/**
+ * @brief gRPC service implementation for @c cvinference.Inference.
+ *
+ * Loaded once at startup and shared (read-only) across requests --
+ * CascadeClassifier::detectMultiScale is safe to call concurrently on a
+ * const classifier from multiple threads.
+ */
 class InferenceServiceImpl final : public Inference::Service {
 public:
     explicit InferenceServiceImpl(const std::string& cascade_path) {
@@ -39,6 +50,12 @@ public:
         }
     }
 
+    /**
+     * @brief Decode one image and run Haar-cascade face detection.
+     * @param request Image id, raw encoded bytes, and requested operation.
+     * @param response Populated with success, per-face detections, and timing.
+     * @return @c Status::OK (per-image failures are reported in the response).
+     */
     Status InferImage(ServerContext* /*context*/, const InferRequest* request,
                        InferResponse* response) override {
         const auto start = std::chrono::steady_clock::now();
@@ -84,6 +101,12 @@ private:
 
 }  // namespace
 
+/**
+ * @brief Process entrypoint: load the cascade, enable the standard gRPC
+ *        health service, and serve @c Inference on 0.0.0.0:50051 until killed.
+ * @param argc Argument count.
+ * @param argv Optional argv[1] overrides the Haar cascade XML path.
+ */
 int main(int argc, char** argv) {
     std::string cascade_path = "/usr/share/opencv4/haarcascades/haarcascade_frontalface_default.xml";
     if (argc > 1) {

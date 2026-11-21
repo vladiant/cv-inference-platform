@@ -1,6 +1,9 @@
-"""Worker: consumes 'images:uploaded' events from Redis, fetches the raw
-image from object storage, calls the C++ inference service over gRPC,
-and persists the result to Postgres.
+"""@file
+@brief Worker service: Redis-Stream consumer that drives the inference step.
+
+Consumes ``images:uploaded`` events from Redis, fetches the raw image from
+object storage, calls the C++ inference service over gRPC, and persists the
+result to Postgres.
 
 Run as N replicas in the same Redis consumer group ("workers") so that
 scaling the pool is a deployment-count change, not a code change.
@@ -34,6 +37,7 @@ CONSUMER = f"worker-{os.getenv('HOSTNAME') or os.getpid()}"
 
 
 async def ensure_group(r: redis.Redis):
+    """@brief Create the consumer group (idempotent; ignores BUSYGROUP)."""
     try:
         await r.xgroup_create(STREAM, GROUP, id="0", mkstream=True)
     except redis.ResponseError as e:
@@ -42,6 +46,7 @@ async def ensure_group(r: redis.Redis):
 
 
 async def fetch_image(s3_session: aioboto3.Session, image_id: str) -> bytes:
+    """@brief Fetch the raw image bytes for ``image_id`` from object storage."""
     async with s3_session.client(
         "s3", endpoint_url=f"http://{MINIO_ENDPOINT}",
         aws_access_key_id=MINIO_ACCESS_KEY, aws_secret_access_key=MINIO_SECRET_KEY,
@@ -51,6 +56,7 @@ async def fetch_image(s3_session: aioboto3.Session, image_id: str) -> bytes:
 
 
 async def run_inference(stub, image_id: str, image_data: bytes) -> inference_pb2.InferResponse:
+    """@brief Call the C++ inference service over gRPC (InferImage, 10s timeout)."""
     request = inference_pb2.InferRequest(
         image_id=image_id, image_data=image_data, operation="face_detect"
     )
@@ -58,6 +64,17 @@ async def run_inference(stub, image_id: str, image_data: bytes) -> inference_pb2
 
 
 async def persist_result(pool: asyncpg.Pool, image_id: str, payload: dict, response) -> None:
+    """@brief Upsert the inference result onto the row ingestion seeded.
+
+    The conflict target is the full primary key ``(image_id, uploaded_at)``
+    so the write is idempotent under Redis redelivery against the partitioned
+    ``images`` table.
+
+    @param pool asyncpg connection pool.
+    @param image_id Image identifier from the event payload.
+    @param payload The decoded ``images:uploaded`` event fields.
+    @param response The gRPC InferResponse to persist.
+    """
     # Bind uploaded_at from the event payload (the exact ISO-8601 string
     # ingestion emitted) so the conflict target matches the seeded pending
     # row to microsecond precision rather than inventing a new now().
@@ -92,6 +109,9 @@ async def persist_result(pool: asyncpg.Pool, image_id: str, payload: dict, respo
 
 
 async def main():
+    """@brief Entrypoint: wire backends, then run the consume loop until a
+    SIGTERM/SIGINT stop event fires, releasing all resources on exit.
+    """
     r = redis.from_url(REDIS_URL, decode_responses=True)
     await ensure_group(r)
     pool = await asyncpg.create_pool(POSTGRES_DSN)

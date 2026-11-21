@@ -1,0 +1,105 @@
+/**
+@mainpage CV Inference Platform — Architecture & API Reference
+
+@section intro_sec Overview
+
+The CV Inference Platform is a small, honest distributed system for ingesting
+images, running computer-vision inference on them at scale, and serving the
+results through a REST API. It is an **event-driven pipeline**, not a
+request/response chain: @c ingestion never blocks on inference, and the
+@c worker pool scales independently of @c ingestion traffic.
+
+This reference documents the four services and the shared gRPC contract. The
+Component Diagram below (@ref components_sec) is the authoritative view of how
+the services relate and which contract each boundary speaks — Doxygen's
+automatic call/include graphs only see within a single language unit, so the
+cross-service topology is described explicitly here.
+
+@section components_sec Component Diagram
+
+Each node is a deployable component; each edge is labelled with the actual
+contract that crosses that boundary (HTTP/REST, Redis Stream event, Redis
+cache, gRPC, S3 object I/O, or SQL). The image record has a single linear
+lifecycle: @c ingestion creates the @c pending row, @c worker enriches it to
+@c done / @c failed, and @c results-api only ever reads it.
+
+\dot
+digraph cv_inference_platform {
+  rankdir=LR;
+  fontname="Helvetica";
+  node [fontname="Helvetica", fontsize=10];
+  edge [fontname="Helvetica", fontsize=9];
+
+  // --- External actor ---
+  client [label="client", shape=oval, style=filled, fillcolor="#ffffff"];
+
+  // --- Python services (FastAPI / asyncio) ---
+  node [shape=component, style=filled, fillcolor="#cfe8fc"];
+  ingestion   [label="ingestion\n(Python / FastAPI)"];
+  worker      [label="worker\n(Python / asyncio)"];
+  results_api [label="results-api\n(Python / FastAPI)"];
+
+  // --- C++ service ---
+  cpp [label="cv-inference-cpp\n(C++ / OpenCV / gRPC)", shape=component,
+       style=filled, fillcolor="#ffd9b3"];
+
+  // --- Infrastructure / data stores ---
+  redis    [label="Redis\n(Stream broker + cache)", shape=box3d,
+            style=filled, fillcolor="#e0e0e0"];
+  minio    [label="MinIO (S3)\nraw image bytes", shape=cylinder,
+            style=filled, fillcolor="#e0e0e0"];
+  postgres [label="PostgreSQL\nimages metadata", shape=cylinder,
+            style=filled, fillcolor="#e0e0e0"];
+
+  // --- Contracts (edges) ---
+  client      -> ingestion   [label="HTTP/REST\nPOST /images"];
+  client      -> results_api [label="HTTP/REST\nGET /images[/{id}]"];
+
+  ingestion   -> minio       [label="S3 put_object\n(raw bytes)"];
+  ingestion   -> postgres    [label="SQL INSERT\npending row"];
+  ingestion   -> redis       [label="Redis Stream XADD\nimages:uploaded"];
+
+  redis       -> worker      [label="Redis consumer group\nXREADGROUP (workers)"];
+  worker      -> minio       [label="S3 get_object\n(raw bytes)"];
+  worker      -> cpp         [label="gRPC\nInferImage"];
+  worker      -> postgres    [label="SQL upsert\ndone / failed"];
+
+  results_api -> postgres    [label="SQL SELECT\n(read-only)"];
+  results_api -> redis       [label="cache-aside\nGET / SET"];
+}
+\enddot
+
+@section contracts_sec Contract summary
+
+| Boundary                      | Contract                | Direction / purpose                          |
+| ----------------------------- | ----------------------- | -------------------------------------------- |
+| client → ingestion            | HTTP/REST               | Upload an image (`POST /images`)             |
+| client → results-api          | HTTP/REST               | Poll / list results (`GET /images[/{id}]`)   |
+| ingestion → MinIO             | S3 (`put_object`)       | Store raw image bytes                        |
+| ingestion → PostgreSQL        | SQL `INSERT`            | Seed the `pending` metadata row              |
+| ingestion → Redis             | Redis Stream `XADD`     | Emit `images:uploaded` event                 |
+| Redis → worker                | Redis consumer group    | `XREADGROUP` fan-out across the worker pool  |
+| worker → MinIO                | S3 (`get_object`)       | Fetch raw bytes for inference                |
+| worker → cv-inference-cpp     | gRPC (`InferImage`)     | Run the CPU-bound inference step             |
+| worker → PostgreSQL           | SQL upsert              | Enrich the row to `done` / `failed`          |
+| results-api → PostgreSQL      | SQL `SELECT`            | Read-only result lookups / listing           |
+| results-api → Redis           | Redis cache (GET/SET)   | Cache-aside response caching                 |
+
+@note Redis is a single deployed instance that plays two logically distinct
+roles: the Stream broker for the `images:uploaded` pipeline, and the
+cache-aside store for `results-api`. The diagram shows both edges to make that
+dual role explicit.
+
+@section layering_sec Clean Architecture layering (Python services)
+
+Each Python service follows the same inward-pointing layering, so it is a
+convention rather than a one-off:
+
+- @c domain — entities & value objects, no framework imports
+- @c use_cases — application logic, depends only on @c domain
+- @c adapters — FastAPI routers, gRPC clients, event consumers (depend inward)
+- @c infra — DB sessions, object-storage clients, config
+
+See `docs/design-decisions.md` for the rationale behind the service split, the
+gRPC-vs-REST boundary choice, and the retention strategy.
+*/

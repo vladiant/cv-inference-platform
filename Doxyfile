@@ -1,0 +1,130 @@
+# Doxyfile for the CV Inference Platform
+# -----------------------------------------------------------------------------
+# Run from the repository root:
+#
+#     doxygen Doxyfile
+#
+# HTML (including the Component Diagram on the main page) is written to
+# docs/doxygen/html/ -- a gitignored directory. Doxygen creates that output
+# directory on demand, so it does not need to exist beforehand.
+#
+# Requires: doxygen (>= 1.9) and graphviz (`dot`) on PATH for the graphs.
+# -----------------------------------------------------------------------------
+
+#---------------------------------------------------------------------------
+# Project
+#---------------------------------------------------------------------------
+PROJECT_NAME           = "CV Inference Platform"
+PROJECT_NUMBER         = 1.0.1
+PROJECT_BRIEF          = "Event-driven distributed computer-vision inference pipeline"
+OUTPUT_DIRECTORY       = docs/doxygen
+CREATE_SUBDIRS         = NO
+OUTPUT_LANGUAGE        = English
+MARKDOWN_SUPPORT       = YES
+TAB_SIZE               = 4
+
+#---------------------------------------------------------------------------
+# Build / extraction
+#---------------------------------------------------------------------------
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = YES
+EXTRACT_LOCAL_CLASSES  = YES
+HIDE_UNDOC_MEMBERS     = NO
+HIDE_UNDOC_CLASSES     = NO
+CASE_SENSE_NAMES       = YES
+SORT_MEMBER_DOCS       = NO
+
+#---------------------------------------------------------------------------
+# Language handling
+#---------------------------------------------------------------------------
+# OPTIMIZE_OUTPUT_JAVA improves member rendering for Python (and Java/C#)
+# sources. JAVADOC_AUTOBRIEF promotes the first sentence of a comment to the
+# brief. PYTHON_DOCSTRING = NO makes Doxygen interpret special commands
+# (@file, @brief, @param, @return) inside Python docstrings rather than
+# treating the docstring as opaque preformatted text.
+OPTIMIZE_OUTPUT_JAVA   = YES
+JAVADOC_AUTOBRIEF      = YES
+QT_AUTOBRIEF           = NO
+PYTHON_DOCSTRING       = NO
+AUTOLINK_SUPPORT       = YES
+
+# Treat the protobuf contract roughly as C so its file/service/message
+# doc comments are picked up (proto is not a first-class Doxygen language;
+# minor parser warnings here are expected and harmless).
+EXTENSION_MAPPING      = proto=C
+
+#---------------------------------------------------------------------------
+# Input
+#---------------------------------------------------------------------------
+INPUT                  = docs/mainpage.dox \
+                         services/ingestion/app \
+                         services/worker/app \
+                         services/results-api/app \
+                         services/cv-inference-cpp/src \
+                         proto/inference.proto \
+                         scripts/benchmark.py
+INPUT_ENCODING         = UTF-8
+RECURSIVE              = YES
+FILE_PATTERNS          = *.py *.cpp *.cc *.h *.hpp *.proto *.dox
+USE_MDFILE_AS_MAINPAGE =
+
+# Keep generated/vendored and test trees out of the reference.
+EXCLUDE_PATTERNS       = */__pycache__/* \
+                         */.pytest_cache/* \
+                         */.ruff_cache/* \
+                         */tests/* \
+                         */*_pb2.py \
+                         */*_pb2_grpc.py
+
+#---------------------------------------------------------------------------
+# Source browsing
+#---------------------------------------------------------------------------
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+REFERENCED_BY_RELATION = YES
+REFERENCES_RELATION    = YES
+
+#---------------------------------------------------------------------------
+# HTML output
+#---------------------------------------------------------------------------
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+GENERATE_TREEVIEW      = YES
+DISABLE_INDEX          = NO
+GENERATE_LATEX         = NO
+GENERATE_XML           = NO
+
+#---------------------------------------------------------------------------
+# Diagrams (Graphviz / dot)
+#---------------------------------------------------------------------------
+# HAVE_DOT enables Graphviz-rendered graphs. The hand-authored Component
+# Diagram lives in an inline \dot block on the main page (docs/mainpage.dox);
+# the relationship graphs below are Doxygen's automatic per-unit graphs.
+# Leave DOT_PATH empty to let Doxygen discover `dot` on PATH; set it to the
+# directory containing `dot` if it is installed outside PATH.
+HAVE_DOT               = YES
+DOT_PATH               =
+DOT_IMAGE_FORMAT       = png
+INTERACTIVE_SVG        = NO
+DOT_CLEANUP            = YES
+DOT_GRAPH_MAX_NODES    = 100
+MAX_DOT_GRAPH_DEPTH    = 0
+
+CLASS_GRAPH            = YES
+COLLABORATION_GRAPH    = YES
+GROUP_GRAPHS           = YES
+INCLUDE_GRAPH          = YES
+INCLUDED_BY_GRAPH      = YES
+CALL_GRAPH             = YES
+CALLER_GRAPH           = YES
+DIRECTORY_GRAPH        = YES
+
+#---------------------------------------------------------------------------
+# Warnings
+#---------------------------------------------------------------------------
+QUIET                  = NO
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = NO
+WARN_IF_DOC_ERROR      = YES
+WARN_NO_PARAMDOC       = NO

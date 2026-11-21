@@ -1,20 +1,31 @@
+/**
+ * @file inference.proto
+ * @brief Shared gRPC contract between the Python worker and cv-inference-cpp.
+ *
+ * Generated into Python stubs at the worker's image-build time and compiled
+ * into the C++ service during its Docker build, so this file is the single
+ * source of truth for the inference wire format.
+ */
 syntax = "proto3";
 
 package cvinference;
 
-// Stateless inference service. Kept intentionally small: one image in,
-// one result out. Batching, if ever needed, would be a separate RPC
-// (InferBatch) rather than overloading this one.
+/// @brief Stateless inference service. Kept intentionally small: one image in,
+/// one result out. Batching, if ever needed, would be a separate RPC
+/// (InferBatch) rather than overloading this one.
 service Inference {
+  /// @brief Run inference on a single image and return its detections.
   rpc InferImage (InferRequest) returns (InferResponse);
 }
 
+/// @brief Request: one image plus the requested operation.
 message InferRequest {
   string image_id = 1;
   bytes image_data = 2;      // raw encoded image bytes (jpg/png)
   string operation = 3;      // e.g. "face_detect", "edge_detect"
 }
 
+/// @brief Response: success flag, optional error, detections, and timing.
 message InferResponse {
   string image_id = 1;
   bool success = 2;
@@ -23,6 +34,7 @@ message InferResponse {
   int32 processing_ms = 5;
 }
 
+/// @brief One detected object: a label, a score, and a bounding box.
 message Detection {
   string label = 1;
   float confidence = 2;

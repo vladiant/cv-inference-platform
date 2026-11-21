@@ -174,11 +174,34 @@ python scripts/benchmark.py --images 500 --concurrency 50
 Reports throughput (images/sec) and p50/p95 latency for three modes:
 synchronous, `asyncio`-concurrent, and multiprocess — see the script for what's actually being compared and why the numbers differ.
 
+## Documentation (Doxygen)
+
+API reference docs are generated with [Doxygen](https://www.doxygen.nl/)
+(graphs rendered via Graphviz `dot`). The `Doxyfile` at the repo root covers
+all four services, the shared `proto/inference.proto` contract, and
+`scripts/benchmark.py`.
+
+```bash
+doxygen Doxyfile
+# open docs/doxygen/html/index.html
+```
+
+The generated HTML lands in `docs/doxygen/html/` (gitignored — not committed).
+The landing page (`index.html`) is the **Component Diagram**: a hand-authored
+Graphviz graph (in `docs/mainpage.dox`) that shows the services as components
+and labels each boundary with its real contract — HTTP/REST, Redis Stream
+event, Redis cache, gRPC, S3 object I/O, and SQL. It is kept faithful to the
+architecture in this README and in `docs/design-decisions.md`.
+
+Requires `doxygen` and `graphviz` (`dot`) on `PATH`. Doxygen creates the
+`docs/doxygen/` output directory on demand.
+
 ## Repo layout
 
 ```
 .
 ├── docker-compose.yml
+├── Doxyfile                    # Doxygen config (API docs + Component Diagram)
 ├── k8s/                        # Deployments, Services, HPA, StatefulSets
 ├── proto/inference.proto       # shared gRPC contract
 ├── services/
@@ -187,7 +210,9 @@ synchronous, `asyncio`-concurrent, and multiprocess — see the script for what'
 │   ├── cv-inference-cpp/
 │   └── results-api/
 ├── scripts/benchmark.py
-└── docs/design-decisions.md
+└── docs/
+    ├── design-decisions.md
+    └── mainpage.dox            # Doxygen main page + Component Diagram
 ```
 
 ## Status

@@ -1,4 +1,5 @@
-"""Concrete MetadataRepository adapter backed by asyncpg (Postgres).
+"""@file
+@brief Concrete MetadataRepository adapter backed by asyncpg (Postgres).
 
 This is the only file in the ingestion service allowed to import asyncpg.
 It writes the ``pending`` metadata row that ingestion owns -- bookkeeping
@@ -14,12 +15,14 @@ class PostgresMetadataRepository:
         self._pool = pool
 
     async def insert_pending(self, upload: ImageUpload) -> None:
-        """Seed a ``pending`` row (processed_at/success/... left NULL).
+        """@brief Seed a ``pending`` row (processed_at/success/... left NULL).
 
         ``ON CONFLICT (image_id, uploaded_at) DO NOTHING`` keeps a
         redelivered/retried upload idempotent: the conflict target is the
         full primary key because ``images`` is partitioned by
         ``uploaded_at`` and has no unique constraint on ``image_id`` alone.
+
+        @param upload The accepted upload whose metadata is being seeded.
         """
         async with self._pool.acquire() as conn:
             await conn.execute(

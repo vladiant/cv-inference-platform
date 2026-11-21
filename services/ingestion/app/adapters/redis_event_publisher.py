@@ -1,4 +1,5 @@
-"""Concrete EventPublisher adapter backed by a Redis Stream.
+"""@file
+@brief Concrete EventPublisher adapter backed by a Redis Stream.
 
 MAXLEN keeps the stream self-trimming once consumer groups have
 acknowledged old entries — see docs/design-decisions.md.
@@ -13,6 +14,7 @@ class RedisEventPublisher:
         self._maxlen = maxlen
 
     async def publish(self, stream: str, payload: dict) -> None:
+        """@brief XADD the JSON payload to ``stream`` with approximate MAXLEN trim."""
         await self._redis.xadd(
             stream,
             {"data": json.dumps(payload)},
@@ -21,4 +23,5 @@ class RedisEventPublisher:
         )
 
     async def close(self) -> None:
+        """@brief Release the Redis connection on service shutdown."""
         await self._redis.aclose()

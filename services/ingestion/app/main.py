@@ -1,6 +1,11 @@
-"""FastAPI entrypoint. This is the only file that knows both the web
-framework and the concrete adapters — it exists purely to wire them
-together and expose HTTP endpoints over the use case.
+"""@file
+@brief FastAPI entrypoint and HTTP surface for the ingestion service.
+
+This is the only file that knows both the web framework and the concrete
+adapters — it exists purely to wire them together and expose HTTP endpoints
+over the AcceptUpload use case. The lifespan handler owns the asyncpg pool,
+the object-store bucket check, and the Redis publisher, releasing them on
+shutdown.
 """
 from contextlib import asynccontextmanager
 
@@ -39,11 +44,17 @@ app = FastAPI(title="ingestion", lifespan=lifespan)
 
 @app.get("/healthz")
 async def healthz():
+    """@brief Liveness probe. Returns a static OK without touching backends."""
     return {"status": "ok"}
 
 
 @app.post("/images")
 async def upload_image(file: UploadFile = File(...)):
+    """@brief Accept a jpeg/png upload and hand it to the AcceptUpload use case.
+
+    @param file The multipart-uploaded image (only jpeg/png are accepted).
+    @return dict with the generated ``image_id`` and a ``status`` of ``queued``.
+    """
     if file.content_type not in ("image/jpeg", "image/png"):
         raise HTTPException(status_code=415, detail="only jpeg/png supported")
     data = await file.read()

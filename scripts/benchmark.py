@@ -1,4 +1,7 @@
-"""Benchmarks the ingestion API under three client strategies to make the
+"""@file
+@brief Client-side throughput benchmark for the ingestion API.
+
+Benchmarks the ingestion API under three client strategies to make the
 "why parallelize" argument with numbers instead of assertion:
 
   sync         - one request at a time, blocking
@@ -31,6 +34,7 @@ def _one_sync_request(url: str) -> float:
 
 
 def run_sync(url: str, n: int) -> list[float]:
+    """@brief Fire ``n`` uploads one at a time; return per-request latencies."""
     return [_one_sync_request(url) for _ in range(n)]
 
 
@@ -46,6 +50,7 @@ async def _one_async_request(session, url: str) -> float:
 
 
 async def run_async(url: str, n: int, concurrency: int) -> list[float]:
+    """@brief Fire ``n`` uploads via aiohttp, bounded to ``concurrency`` in flight."""
     sem = asyncio.Semaphore(concurrency)
 
     async def bounded(session):
@@ -61,6 +66,7 @@ def _worker_batch(url: str, count: int) -> list[float]:
 
 
 def run_multiprocess(url: str, n: int, workers: int) -> list[float]:
+    """@brief Fire ``n`` uploads spread across ``workers`` OS processes."""
     per_worker = n // workers
     with multiprocessing.Pool(workers) as pool:
         batches = pool.starmap(_worker_batch, [(url, per_worker)] * workers)
@@ -68,6 +74,7 @@ def run_multiprocess(url: str, n: int, workers: int) -> list[float]:
 
 
 def report(name: str, latencies: list[float], wall_seconds: float):
+    """@brief Print throughput (img/s) and p50/p95 latency for one mode."""
     latencies = sorted(latencies)
     n = len(latencies)
     p50 = latencies[int(n * 0.50)]
@@ -77,6 +84,7 @@ def report(name: str, latencies: list[float], wall_seconds: float):
 
 
 def main():
+    """@brief CLI entrypoint: run sync, asyncio, and multiprocess benchmarks."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--url", default="http://localhost:8000/images")
     parser.add_argument("--images", type=int, default=100)

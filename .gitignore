@@ -72,6 +72,10 @@ instance/
 # Sphinx documentation
 docs/_build/
 
+# Doxygen generated API docs (HTML + diagrams). The Doxyfile and
+# docs/mainpage.dox are source-controlled; the generated output is not.
+docs/doxygen/
+
 # PyBuilder
 .pybuilder/
 target/

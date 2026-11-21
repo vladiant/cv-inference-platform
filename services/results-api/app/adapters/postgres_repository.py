@@ -1,3 +1,6 @@
+"""@file
+@brief Concrete ResultRepository adapter backed by asyncpg (Postgres reads).
+"""
 import json
 from typing import Optional
 
@@ -11,6 +14,7 @@ class PostgresResultRepository:
         self._pool = pool
 
     async def find_by_id(self, image_id: str) -> Optional[ImageResult]:
+        """@brief Read one image row by id, or None if it does not exist."""
         async with self._pool.acquire() as conn:
             row = await conn.fetchrow(
                 """
@@ -35,6 +39,7 @@ class PostgresResultRepository:
         )
 
     async def list_recent(self, limit: int, offset: int) -> list[ImageResult]:
+        """@brief Read a page of recent rows ordered by ``uploaded_at`` DESC."""
         async with self._pool.acquire() as conn:
             rows = await conn.fetch(
                 """

@@ -1,3 +1,10 @@
+"""@file
+@brief FastAPI entrypoint and HTTP surface for the read-only results API.
+
+Wires the Postgres result repository and the Redis cache into the
+GetImageResult use case and exposes single-image lookup plus a paginated
+recent-images listing. This service only ever reads the ``images`` row.
+"""
 from contextlib import asynccontextmanager
 
 import asyncpg
@@ -31,11 +38,17 @@ app = FastAPI(title="results-api", lifespan=lifespan)
 
 @app.get("/healthz")
 async def healthz():
+    """@brief Liveness probe. Returns a static OK without touching backends."""
     return {"status": "ok"}
 
 
 @app.get("/images/{image_id}")
 async def get_image(image_id: str):
+    """@brief Cache-aside lookup of one image result; 404 if unknown.
+
+    @param image_id The image identifier to look up.
+    @return The full result record (status, timings, detections).
+    """
     result = await state["get_result"].execute(image_id)
     if result is None:
         raise HTTPException(status_code=404, detail="not found")
@@ -53,6 +66,12 @@ async def get_image(image_id: str):
 
 @app.get("/images")
 async def list_images(limit: int = Query(20, le=100), offset: int = Query(0, ge=0)):
+    """@brief Paginated listing of recent images ordered by upload time.
+
+    @param limit Page size (max 100).
+    @param offset Row offset into the recent-images ordering.
+    @return A page of lightweight image summaries.
+    """
     results = await state["repo"].list_recent(limit, offset)
     return {
         "limit": limit,

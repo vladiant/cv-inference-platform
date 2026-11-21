@@ -1,3 +1,6 @@
+"""@file
+@brief Cache-aside read use case for image results.
+"""
 import json
 from typing import Optional, Protocol
 
@@ -5,16 +8,18 @@ from app.domain.image_result import ImageResult, Detection
 
 
 class ResultRepository(Protocol):
+    ## @brief Port: read one image result by id.
     async def find_by_id(self, image_id: str) -> Optional[ImageResult]: ...
 
 
 class ResultCache(Protocol):
+    ## @brief Port: string key/value cache with per-entry TTL.
     async def get(self, key: str) -> Optional[str]: ...
     async def set(self, key: str, value: str, ttl_seconds: int) -> None: ...
 
 
 class GetImageResult:
-    """Cache-aside read: check Redis first, fall back to Postgres, then
+    """@brief Cache-aside read: check Redis first, fall back to Postgres, then
     populate the cache. A `pending`/`failed` result is cached with a much
     shorter TTL than a `done` one, since it's likely to change soon.
     """
@@ -24,6 +29,11 @@ class GetImageResult:
         self._cache = cache
 
     async def execute(self, image_id: str) -> Optional[ImageResult]:
+        """@brief Resolve a result from cache or Postgres, caching the miss.
+
+        @param image_id Image identifier to resolve.
+        @return The ImageResult, or None if no such row exists.
+        """
         cache_key = f"image_result:{image_id}"
         cached = await self._cache.get(cache_key)
         if cached is not None:
